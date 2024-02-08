@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { SubmitButton, SubmitDeleteButton } from "./SubmitButton";
 
 type Todo = {
   name: string;
@@ -9,8 +10,6 @@ type Todo = {
 export default async function Home() {
   async function createTodo(formData: FormData) {
     'use server'
-
-    console.log(formData.get('name'), formData.get('description'))
 
     const todo: Todo = {
       name: formData.get('name'),
@@ -24,11 +23,8 @@ export default async function Home() {
       }
     })
 
-    console.log("passou do prisma")
-
     revalidatePath("/")
   }
-
 
   return (
     <main className="flex min-h-screen flex-col items-center p-24">
@@ -65,28 +61,36 @@ export default async function Home() {
   );
 }
 
-function SubmitButton() {
-  return (
-    <div className="flex mt-4 items-center justify-center">
-      <button
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        type="submit">
-        Create Todo
-      </button>
-    </div>
-  )
-}
-
 async function TodoList() {
   const todos = await prisma.todo.findMany();
 
+  async function deleteTodo(formData: FormData) {
+    'use server'
+
+    const id = formData.get('id') as string
+
+    await prisma.todo.delete({
+      where: {
+        id: id
+      }
+    })
+
+    revalidatePath("/")
+  }
+
   return (
-    <ul className="mt-20">
+    <ul className="mt-20 flex flex-col gap-4">
       {todos.map((todo) => {
         return (
-          <li key={todo.id}>{todo.name} - {todo.description}</li>
+          <li key={todo.id} className="flex gap-4">
+            <p className="min-w-60">{todo.name} - {todo.description}</p>
+            <form action={deleteTodo}>
+              <input type="hidden" name="id" value={todo.id} />
+              <SubmitDeleteButton />
+            </form>
+          </li>
         )
       })}
-    </ul>
+    </ul >
   )
 }
